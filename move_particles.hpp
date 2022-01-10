@@ -5,18 +5,13 @@
 extern "C" {
 #endif
 
-int funkcja(int a, int b);
-void set_x(int _x);
-void init_list(int _int_list[], int _list_length);
-void print_list();
-int *get_list();
-void read_list(int list[], int length);
-void change_list(float *position_x,
+void move_particles(float *position_x,
                  float *position_y,
                  float *position_z,
                  float *acceleration_x,
                  float *acceleration_y,
                  float *acceleration_z,
+                 float *mass,
                  int length);
 
 #ifdef __cplusplus
