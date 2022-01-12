@@ -20,14 +20,9 @@ class Simulation:
     def __init__(self, particles: int, min: float, max: float, mass_min: float, mass_max: float) -> None:
         self.fig = plt.figure()
         self.subplot = self.fig.add_subplot(111, projection='3d')
-        scaling = 5
-        self.subplot.set_xlim(self.min, self.max*scaling)
-        self.subplot.set_ylim(self.min, self.max*scaling)
-        self.subplot.set_zlim(self.min, self.max*scaling)
-
         self.min = min
         self.max = max
-
+        self.scaling = 5
         self.particles = particles
 
         position_x = []
@@ -69,6 +64,9 @@ class Simulation:
 
     def draw(self) -> None:
         self.subplot.scatter(simulation.position_x, simulation.position_y, simulation.position_z, s=20, c='r', marker='o')
+        self.subplot.set_xlim(self.min, self.max*self.scaling)
+        self.subplot.set_ylim(self.min, self.max*self.scaling)
+        self.subplot.set_zlim(self.min, self.max*self.scaling)
         plt.ion()
         plt.pause(0.01)
         self.subplot.clear()
@@ -80,7 +78,7 @@ class Simulation:
         cuda_clean()
 
 if __name__ == '__main__':
-    simulation = Simulation(500, 0, 10, 0.1, 10)
+    simulation = Simulation(200, 0, 10, 0.1, 10)
 
     if GPU:
         simulation.cuda_initialize()
