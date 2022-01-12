@@ -74,7 +74,7 @@ class Simulation:
     def cuda_initialize(self) -> None:
         cuda_initialize(self.position_x, self.position_y, self.position_z, self.acceleration_x, self.acceleration_y, self.acceleration_z, self.mass, self.particles)
 
-    def cuda_clean() -> None:
+    def cuda_clean(self) -> None:
         cuda_clean()
 
 if __name__ == '__main__':
