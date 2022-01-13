@@ -6,11 +6,10 @@
 
 #include "move_particles.hpp"
 
-
 long maxGridSize;
 long maxThreadsPerBlock;
 
-int length;
+int number_of_particles;
 
 float *d_position_x;
 float *d_position_y;
@@ -19,39 +18,92 @@ float *d_acceleration_x;
 float *d_acceleration_y;
 float *d_acceleration_z;
 float *d_mass;
-float *d_step;
-float *d_length;
+float *d_step;  // step nie jest do podnoszony do kwadratu ani dzielony przez 2
+float *d_number_of_particles;
 float *d_G;
 
-__global__ void calculate_move(float *d_position_x,
-                               float *d_position_y,
-                               float *d_position_z,
-                               float *d_acceleration_x,
-                               float *d_acceleration_y,
-                               float *d_acceleration_z,
-                               float *d_mass,
-                               float *d_step,
-                               int *d_length,
-                               float d_G) {
-    for (int i = 0; i < *d_length; i++) {
-        for (int k = 0; k < *d_length; k++) {
-            float distance = pow(d_position_x[i] - d_position_x[k], 2) + pow(d_position_y[i] - position_y[k], 2) + pow(position_z[i] - position_z[k], 2);
-            if (distance == 0) {
-                distance = 0.000000001;
-            }
+__device__ calculate_acceleration_one_particle(float *d_current_position_x,
+                                               float *d_current_position_y,
+                                               float *d_current_position_z,
+                                               float *d_current_acceleration_x,
+                                               float *d_current_acceleration_y,
+                                               float *d_current_acceleration_z,
+                                               float *d_other_position_x,
+                                               float *d_other_position_y,
+                                               float *d_other_position_z,
+                                               float *d_other_mass,
+                                               float *d_step,
+                                               float *d_G) {
 
-            float f = G * mass[k] / distance;
-            acceleration_x[i] += (position_x[k] - position_x[i]) * f;
-            acceleration_y[i] += (position_y[k] - position_y[i]) * f;
-            acceleration_z[i] += (position_z[k] - position_z[i]) * f;
-        }
-    }
+    float distance = pow((*d_current_position_x) - (*d_other_position_x), 2) + pow((*d_current_position_y) - (*d_other_position_y), 2) + pow((*d_current_position_z) - (*d_other_position_z), 2);
+    float f = (*d_G) * (*d_other_mass) / distance;
 
-    for (int i = 0; i < length; i++) {
-        position_x[i] += acceleration_x[i] * time / 2;
-        position_y[i] += acceleration_y[i] * time / 2;
-        position_z[i] += acceleration_z[i] * time / 2;
-    }
+    *d_current_acceleration_x += ((*d_other_position_x) - (*d_current_position_x)) * f;
+    *d_current_acceleration_y += ((*d_other_position_y) - (*d_current_position_y)) * f;
+    *d_current_acceleration_z += ((*d_other_position_z) - (*d_current_position_z)) * f;
+}
+
+__device__ calculate_move_one_particle(float *d_current_position_x,
+                                       float *d_current_position_y,
+                                       float *d_current_position_z,
+                                       float *d_current_acceleration_x,
+                                       float *d_current_acceleration_y,
+                                       float *d_current_acceleration_z,
+                                       float *d_position_x,
+                                       float *d_position_y,
+                                       float *d_position_z,
+                                       float *d_mass,
+                                       float *d_step,
+                                       int *d_number_of_particles,
+                                       float d_G) {
+
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    <<<1, 1024>>> calculate_acceleration_one_particle(d_current_position_x,
+                                               d_current_position_y,
+                                               d_current_position_z,
+                                               d_current_acceleration_x,
+                                               d_current_acceleration_y,
+                                               d_current_acceleration_z,
+                                               d_position_x[i],
+                                               d_position_y[i],
+                                               d_position_z[i],
+                                               d_mass,
+                                               d_time,
+                                               d_number_of_particles,
+                                               d_G);
+
+    *d_current_position_x += (*d_current_acceleration_x) * (*d_step);
+    *d_current_position_y += (*d_current_acceleration_y) * (*d_step);
+    *d_current_position_z += (*d_current_acceleration_z) * (*d_step);
+}
+
+__global__ void calculate_move_all_particles(float *d_position_x,
+                                             float *d_position_y,
+                                             float *d_position_z,
+                                             float *d_acceleration_x,
+                                             float *d_acceleration_y,
+                                             float *d_acceleration_z,
+                                             float *d_mass,
+                                             float *d_step,
+                                             int *d_number_of_particles,
+                                             float d_G) {
+
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    <<< 1, 1024>>> calculate_move_one_particle(d_position_x[i],
+                                               d_position_y[i],
+                                               d_position_z[i],
+                                               d_acceleration_x[i],
+                                               d_acceleration_y[i],
+                                               d_acceleration_z[i],
+                                               d_position_x,
+                                               d_position_y,
+                                               d_position_z,
+                                               d_mass,
+                                               d_time,
+                                               d_number_of_particles,
+                                               d_G);
 }
 
 void cuda_initialize(float *position_x,
@@ -62,7 +114,7 @@ void cuda_initialize(float *position_x,
                      float *acceleration_z,
                      float *mass,
                      float *step,
-                     int *length,
+                     int *number_of_particles,
                      float G) {
     int device = 0;
 
@@ -78,33 +130,33 @@ void cuda_initialize(float *position_x,
     std::cout << "Maximum number of threads per block: " << maxThreadsPerBlock << std::endl;
     std::cout << std::endl;
 
-    cudaMalloc((void **)&d_position_x, sizeof(float) * (*length));
-    cudaMemcpy(d_position_x, &position_x, sizeof(float) * (*length), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_position_x, sizeof(float) * (*number_of_particles));
+    cudaMemcpy(d_position_x, &position_x, sizeof(float) * (*number_of_particles), cudaMemcpyHostToDevice);
 
-    cudaMalloc((void **)&d_position_y, sizeof(float) * (*length));
-    cudaMemcpy(d_position_y, &position_y, sizeof(float) * (*length), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_position_y, sizeof(float) * (*number_of_particles));
+    cudaMemcpy(d_position_y, &position_y, sizeof(float) * (*number_of_particles), cudaMemcpyHostToDevice);
 
-    cudaMalloc((void **)&d_position_z, sizeof(float) * (*length));
-    cudaMemcpy(d_position_z, &position_z, sizeof(float) * (*length), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_position_z, sizeof(float) * (*number_of_particles));
+    cudaMemcpy(d_position_z, &position_z, sizeof(float) * (*number_of_particles), cudaMemcpyHostToDevice);
 
-    cudaMalloc((void **)&d_acceleration_x, sizeof(float) * (*length));
-    cudaMemcpy(d_acceleration_x, &acceleration_x, sizeof(float) * (*length), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_acceleration_x, sizeof(float) * (*number_of_particles));
+    cudaMemcpy(d_acceleration_x, &acceleration_x, sizeof(float) * (*number_of_particles), cudaMemcpyHostToDevice);
 
     cudaFree(d_mass);
-    cudaMalloc((void **)&d_acceleration_y, sizeof(float) * (*length));
-    cudaMemcpy(d_acceleration_y, &acceleration_y, sizeof(float) * (*length), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_acceleration_y, sizeof(float) * (*number_of_particles));
+    cudaMemcpy(d_acceleration_y, &acceleration_y, sizeof(float) * (*number_of_particles), cudaMemcpyHostToDevice);
 
-    cudaMalloc((void **)&d_acceleration_z, sizeof(float) * (*length));
-    cudaMemcpy(d_acceleration_z, &acceleration_z, sizeof(float) * (*length), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_acceleration_z, sizeof(float) * (*number_of_particles));
+    cudaMemcpy(d_acceleration_z, &acceleration_z, sizeof(float) * (*number_of_particles), cudaMemcpyHostToDevice);
 
-    cudaMalloc((void **)&d_mass, sizeof(float) * (*length));
-    cudaMemcpy(d_mass, &mass, sizeof(float) * (*length), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_mass, sizeof(float) * (*number_of_particles));
+    cudaMemcpy(d_mass, &mass, sizeof(float) * (*number_of_particles), cudaMemcpyHostToDevice);
 
     cudaMalloc((void **)&d_step, sizeof(float));
     cudaMemcpy(d_step, &step, sizeof(float), cudaMemcpyHostToDevice);
 
-    cudaMalloc((void **)&d_length, sizeof(int));
-    cudaMemcpy(d_length, &length, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_number_of_particles, sizeof(int));
+    cudaMemcpy(d_number_of_particles, &number_of_particles, sizeof(int), cudaMemcpyHostToDevice);
 
     cudaMalloc((void **)&d_G, sizeof(float));
     cudaMemcpy(d_G, &G, sizeof(float), cudaMemcpyHostToDevice);
@@ -119,26 +171,25 @@ void cuda_clean() {
     cudaFree(d_acceleration_z);
     cudaFree(d_mass);
     cudaFree(d_step);
-    cudaFree(d_length);
+    cudaFree(d_number_of_particles);
     cudaFree(d_G);
 }
 
 void move_particles(float *position_x,
                     float *position_y,
                     float *position_z) {
+    <<< 1, 1024>>> calculate_move_all_particles(d_position_x,
+                                                d_position_y,
+                                                d_position_z,
+                                                d_acceleration_x,
+                                                d_acceleration_y,
+                                                d_acceleration_z,
+                                                d_mass,
+                                                d_time,
+                                                d_number_of_particles,
+                                                d_G);
 
-    <<<>>> calculate_move(d_position_x,
-                          d_position_y,
-                          d_position_z,
-                          d_acceleration_x,
-                          d_acceleration_y,
-                          d_acceleration_z,
-                          d_mass,
-                          d_time,
-                          d_length,
-                          d_G);
-
-    cudaMemcpy(position_x, &d_position_x, sizeof(float) * length, cudaMemcpyDeviceToHost);
-    cudaMemcpy(position_y, &d_position_y, sizeof(float) * length, cudaMemcpyDeviceToHost);
-    cudaMemcpy(position_z, &d_position_z, sizeof(float) * length, cudaMemcpyDeviceToHost);
+    cudaMemcpy(position_x, &d_position_x, sizeof(float) * number_of_particles, cudaMemcpyDeviceToHost);
+    cudaMemcpy(position_y, &d_position_y, sizeof(float) * number_of_particles, cudaMemcpyDeviceToHost);
+    cudaMemcpy(position_z, &d_position_z, sizeof(float) * number_of_particles, cudaMemcpyDeviceToHost);
 }

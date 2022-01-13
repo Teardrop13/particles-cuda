@@ -78,7 +78,7 @@ class Simulation:
         cuda_clean()
 
 if __name__ == '__main__':
-    simulation = Simulation(200, 0, 10, 0.1, 10)
+    simulation = Simulation(1024, 0, 10, 0.1, 10)
 
     if GPU:
         simulation.cuda_initialize()
