@@ -1,5 +1,5 @@
-#ifndef MOVE_PARTICLES_H
-#define MOVE_PARTICLES_H
+#ifndef MOVE_PARTICLES_GPU_H
+#define MOVE_PARTICLES_GPU_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,7 +12,9 @@ void cuda_initialize(float *position_x,
                      float *acceleration_y,
                      float *acceleration_z,
                      float *mass,
-                     int length);
+                     float step,
+                     int _number_of_particles,
+                     float G);
 
 void cuda_clean();
 
@@ -24,4 +26,4 @@ void move_particles(float *position_x,
 }
 #endif
 
-#endif /* MOVE_PARTICLES_H */
+#endif /* MOVE_PARTICLES_GPU_H */

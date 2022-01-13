@@ -3,7 +3,7 @@ from ctypes import *
 import matplotlib.pyplot as plt
 from random import random
 
-GPU = False
+GPU = True
 
 if GPU:
     library = CDLL(os.path.join(os.path.abspath('.'), "move_particles_gpu.so"))
@@ -24,6 +24,9 @@ class Simulation:
         self.max = max
         self.scaling = 5
         self.particles = particles
+
+        step = 0.01
+        G = 2
 
         position_x = []
         position_y = []
@@ -55,24 +58,29 @@ class Simulation:
         self.acceleration_z = (c_float * particles)(*acceleration_z)
         
         self.mass = (c_float * particles)(*mass)
+        self.step = c_float(step)
+        self.G = c_float(G)
 
     def _generate(self, min: float, max: float) -> float:
         return min + random() * (max - min)
 
     def run(self) -> None:
-        move_particles(self.position_x, self.position_y, self.position_z, self.acceleration_x, self.acceleration_y, self.acceleration_z, self.mass, self.particles)
+        if GPU:
+            move_particles(self.position_x, self.position_y, self.position_z)
+        else:
+            move_particles(self.position_x, self.position_y, self.position_z, self.acceleration_x, self.acceleration_y, self.acceleration_z, self.mass, self.particles)
 
     def draw(self) -> None:
         self.subplot.scatter(simulation.position_x, simulation.position_y, simulation.position_z, s=20, c='r', marker='o')
-        self.subplot.set_xlim(self.min, self.max*self.scaling)
-        self.subplot.set_ylim(self.min, self.max*self.scaling)
-        self.subplot.set_zlim(self.min, self.max*self.scaling)
+        # self.subplot.set_xlim(self.min, self.max*self.scaling)
+        # self.subplot.set_ylim(self.min, self.max*self.scaling)
+        # self.subplot.set_zlim(self.min, self.max*self.scaling)
         plt.ion()
         plt.pause(0.01)
         self.subplot.clear()
 
     def cuda_initialize(self) -> None:
-        cuda_initialize(self.position_x, self.position_y, self.position_z, self.acceleration_x, self.acceleration_y, self.acceleration_z, self.mass, self.particles)
+        cuda_initialize(self.position_x, self.position_y, self.position_z, self.acceleration_x, self.acceleration_y, self.acceleration_z, self.mass, self.step, self.particles, self.G)
 
     def cuda_clean(self) -> None:
         cuda_clean()

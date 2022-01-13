@@ -15,7 +15,7 @@ run:
 	python3 ./particles.py
 
 build_gpu:
-	nvcc --ptxas-options=-v --compiler-options '-fPIC' -o move_particles_gpu.so --shared move_particles_gpu.cu
+	nvcc -Wno-deprecated-gpu-targets --gpu-architecture=compute_35 --gpu-code=sm_35,compute_35 -rdc=true --ptxas-options=-v --compiler-options '-fPIC' -o move_particles_gpu.so --shared move_particles_gpu.cu
 	@echo "=====================================================\n\n"
 run:
 	python3 ./particles.py
