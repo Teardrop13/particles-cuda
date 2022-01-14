@@ -76,7 +76,7 @@ class Simulation:
         # self.subplot.set_ylim(self.min, self.max*self.scaling)
         # self.subplot.set_zlim(self.min, self.max*self.scaling)
         plt.ion()
-        plt.pause(0.01)
+        plt.pause(0.0001)
         self.subplot.clear()
 
     def cuda_initialize(self) -> None:
@@ -86,11 +86,13 @@ class Simulation:
         cuda_clean()
 
 if __name__ == '__main__':
-    simulation = Simulation(1024, 0, 10, 0.1, 10)
+    simulation = Simulation(128, 0, 10, 0.1, 10)
 
     if GPU:
         simulation.cuda_initialize()
+        print("gpu initialized")
 
+    simulation.draw()
     for i in range(4000):
 
         simulation.run()
@@ -98,3 +100,4 @@ if __name__ == '__main__':
 
     if GPU:
         simulation.cuda_clean()
+        print("variables freed")

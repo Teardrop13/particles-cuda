@@ -9,7 +9,6 @@ gpu: build_gpu run
 build_cpu:
 	g++ -fPIC -c move_particles.cpp
 	g++ -fPIC -shared -o move_particles.so move_particles.o
-	@# nvcc --ptxas-options=-v --compiler-options '-fPIC' -o libKernel.so --shared project.cu
 	@echo "=====================================================\n\n"
 run:
 	python3 ./particles.py
