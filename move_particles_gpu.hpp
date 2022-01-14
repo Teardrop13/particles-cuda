@@ -5,22 +5,31 @@
 extern "C" {
 #endif
 
-void cuda_initialize(float *position_x,
-                     float *position_y,
-                     float *position_z,
-                     float *acceleration_x,
-                     float *acceleration_y,
-                     float *acceleration_z,
-                     float *mass,
+struct Vector
+{
+    float x;
+    float y;
+    float z;
+};
+
+
+struct Particle
+{
+    float x;
+    float y;
+    float z;
+    float mass;
+    Vector acceleration;
+};
+
+void cuda_initialize(Particle *particles,
                      float step,
                      int _number_of_particles,
                      float G);
 
 void cuda_clean();
 
-void move_particles(float *position_x,
-                    float *position_y,
-                    float *position_z);
+void move_particles(Particle *particles);
 
 #ifdef __cplusplus
 }
