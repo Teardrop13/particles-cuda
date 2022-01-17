@@ -7,8 +7,8 @@ gpu: build_gpu run_cpu
 .PHONY: run
 
 build_cpu:
-	g++ -fPIC -c move_particles.cpp
-	g++ -fPIC -shared -o move_particles.so move_particles.o
+	g++ -fPIC -c move_particles_cpu.cpp
+	g++ -fPIC -shared -o move_particles_cpu.so move_particles_cpu.o
 	@echo "=====================================================\n\n"
 run_cpu:
 	python3 ./particles.py --cpu

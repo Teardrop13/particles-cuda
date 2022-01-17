@@ -1,5 +1,5 @@
-#ifndef MOVE_PARTICLES_H
-#define MOVE_PARTICLES_H
+#ifndef MOVE_PARTICLES_CPU_H
+#define MOVE_PARTICLES_CPU_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -76,4 +76,4 @@ void move_particles(Particle *particles, int length);
 }
 #endif
 
-#endif /* MOVE_PARTICLES_H */
+#endif /* MOVE_PARTICLES_CPU_H */
