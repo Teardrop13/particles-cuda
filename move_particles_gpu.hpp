@@ -23,7 +23,7 @@ struct Particle
 };
 
 void cuda_initialize(Particle *particles,
-                     float step,
+                     float dt,
                      int _number_of_particles,
                      float G);
 

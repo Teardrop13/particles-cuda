@@ -18,7 +18,7 @@ int *d_blocks;
 
 float *d_current_particles;
 float *d_previous_particles;
-float *d_step;  // step nie jest do podnoszony do kwadratu ani dzielony przez 2
+float *d_dt;  // dt nie jest do podnoszony do kwadratu ani dzielony przez 2
 int *d_number_of_particles;
 float *d_G;
 
@@ -57,7 +57,7 @@ __global__ void calculate_move_one_particle(float *d_current_position_x,
                                        float *d_position_y,
                                        float *d_position_z,
                                        float *d_mass,
-                                       float *d_step,
+                                       float *d_dt,
                                        float *d_G,
                                        int  *d_number_of_particles,
                                        int *d_blocks,
@@ -78,14 +78,14 @@ __global__ void calculate_move_one_particle(float *d_current_position_x,
                                                d_G);
     __syncthreads();
 
-    atomicAdd(d_current_position_x, (*d_current_acceleration_x) * (*d_step));
-    atomicAdd(d_current_position_y, (*d_current_acceleration_y) * (*d_step));
-    atomicAdd(d_current_position_z, (*d_current_acceleration_z) * (*d_step));
+    atomicAdd(d_current_position_x, (*d_current_acceleration_x) * (*d_dt));
+    atomicAdd(d_current_position_y, (*d_current_acceleration_y) * (*d_dt));
+    atomicAdd(d_current_position_z, (*d_current_acceleration_z) * (*d_dt));
 }
 
 __global__ void calculate_move_all_particles(Particle *d_current_particles,
                                             Particle *d_previous_particles,
-                                             float *d_step,
+                                             float *d_dt,
                                              float *d_G,
                                              int *d_number_of_particles,
                                              int *d_blocks,
@@ -103,7 +103,7 @@ __global__ void calculate_move_all_particles(Particle *d_current_particles,
                                                d_position_y,
                                                d_position_z,
                                                d_mass,
-                                               d_step,
+                                               d_dt,
                                                d_G,
                                                d_number_of_particles,
                                                d_blocks,
@@ -114,7 +114,7 @@ __global__ void calculate_move_all_particles(Particle *d_current_particles,
 }
 
 void cuda_initialize(Particle *particles,
-                     float step,
+                     float dt,
                      int _number_of_particles,
                      float G) {
     int device = 0;
@@ -138,8 +138,8 @@ void cuda_initialize(Particle *particles,
     cudaMalloc((void **)&d_current_particles, sizeof(Particle) * number_of_particles);
     cudaMemcpy(d_current_particles, particles, sizeof(Particle) * number_of_particles, cudaMemcpyHostToDevice);
 
-    cudaMalloc((void **)&d_step, sizeof(float));
-    cudaMemcpy(d_step, &step, sizeof(float), cudaMemcpyHostToDevice);
+    cudaMalloc((void **)&d_dt, sizeof(float));
+    cudaMemcpy(d_dt, &dt, sizeof(float), cudaMemcpyHostToDevice);
 
     cudaMalloc((void **)&d_number_of_particles, sizeof(int));
     cudaMemcpy(d_number_of_particles, &number_of_particles, sizeof(int), cudaMemcpyHostToDevice);
@@ -156,7 +156,7 @@ void cuda_initialize(Particle *particles,
 
 void cuda_clean() {
     cudaFree(d_current_particles);
-    cudaFree(d_step);
+    cudaFree(d_dt);
     cudaFree(d_number_of_particles);
     cudaFree(d_G);
 }
@@ -166,7 +166,7 @@ void move_particles(float *particles) {
     std::cout << "przed: " << position_x[0] << ", " << position_x[number_of_particles-1] << std::endl;
 
     calculate_move_all_particles<<< blocks, threads>>> (d_current_particles,
-                                                d_step,
+                                                d_dt,
                                                 d_G,
                                                 d_number_of_particles,
                                                 d_blocks,

@@ -1,0 +1,2 @@
+std::cout << (particles[i].position-particles[k].position).x   << " " << (particles[i].position-particles[k].position).y << " " << (particles[i].position-particles[k].position).z<< std::endl;
+std::cout << (*acceleration).x   << " " << (*acceleration).y << " " << (*acceleration).z << "odleglosc: " << (particles[i].position-particles[k].position).x   << " " << (particles[i].position-particles[k].position).y << " " << (particles[i].position-particles[k].position).z<< std::endl;

@@ -7,40 +7,43 @@
 #include <cstdlib>
 #include <iostream>
 
-const float G = 2; // nie prawdziwe G
+float G; // nie prawdziwe G
+float dt;
 
-int a =1;
+float get_distance(Vector a, Vector b) {
+    return sqrt(pow(a.x-b.x, 2) + pow(a.y-b.y, 2) + pow(a.z-b.z, 2));
+}
 
-void move_particles(float *position_x,
-                 float *position_y,
-                 float *position_z,
-                 float *acceleration_x,
-                 float *acceleration_y,
-                 float *acceleration_z,
-                 float *mass,
-                 int length) {
+void cpu_initalize(float _G, float _dt) {
+    G = _G;
+    dt = _dt;
+}
 
-    float time = 0.1;
-    time = pow(time, 2);
+void move_particles(Particle *particles, int length) {
+
 
     for (int i = 0; i < length; i++) {
+        Vector* acceleration = new Vector(0,0,0);
+
         for (int k = 0; k < length; k++) {
             
-                float distance = pow(position_x[i]-position_x[k], 2) + pow(position_y[i]-position_y[k], 2) + pow(position_z[i]-position_z[k], 2);
-                if (distance == 0){
-                    distance = 0.000000001;
-                }
+            if (i == k) {
+                continue;
+            }
+            
+            float distance = get_distance(particles[i].position, particles[k].position);
 
-                float f = G * mass[k] / distance;
-                acceleration_x[i] += (position_x[k]-position_x[i]) * f;
-                acceleration_y[i] += (position_y[k]-position_y[i]) * f;
-                acceleration_z[i] += (position_z[k]-position_z[i]) * f;
+            if (distance < 0.01) {
+                continue;
+            }
+
+            *acceleration += (particles[k].position-particles[i].position) * G * particles[k].mass / pow(distance, 3);
         }
+
+        particles[i].speed += (*acceleration) * dt;
     }
 
     for (int i = 0; i < length; i++) {
-        position_x[i] += acceleration_x[i] * time / 2;
-        position_y[i] += acceleration_y[i] * time / 2;
-        position_z[i] += acceleration_z[i] * time / 2;
+        particles[i].position += particles[i].speed * dt;
     }
 }
