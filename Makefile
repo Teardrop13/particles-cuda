@@ -2,7 +2,7 @@ all: cpu
 
 cpu: build_cpu run_cpu
 
-gpu: build_gpu run_cpu
+gpu: build_gpu run_gpu
 
 .PHONY: run
 

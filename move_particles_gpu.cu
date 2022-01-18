@@ -41,13 +41,17 @@ __global__ void calculate_speed_one_to_one_particle(Particle *current_particle,
                                                            float *d_dt) {
     float distance = get_distance((*current_particle).position, (*other_particle).position);
 
-    if (distance == 0) {
+    if (distance < 0.1) {
         return;
     }
     float a = (*d_G) * (*other_particle).mass / pow(distance, 3);
 
     // tu powinien być atomicAdd
-    (*current_particle).speed += ((*other_particle).position - (*current_particle).position) * a * (*d_dt);
+    // (*current_particle).speed += ((*other_particle).position - (*current_particle).position) * Vector(a* (*d_dt),a* (*d_dt),a* (*d_dt));
+    
+    atomicAdd(&(*current_particle).speed.x, ((*other_particle).position.x - (*current_particle).position.x) * a * (*d_dt));
+    atomicAdd(&(*current_particle).speed.y, ((*other_particle).position.y - (*current_particle).position.y) * a * (*d_dt));
+    atomicAdd(&(*current_particle).speed.z, ((*other_particle).position.z - (*current_particle).position.z) * a * (*d_dt));
 }
 
 __global__ void calculate_speed_all_to_one_particle(Particle *current_particle,
@@ -60,7 +64,7 @@ __global__ void calculate_speed_all_to_one_particle(Particle *current_particle,
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
     calculate_speed_one_to_one_particle<<<*d_blocks, *d_threads>>>(current_particle,
-                                                                   &d_previous_particles[i],
+                                                                   (&d_previous_particles)[i],
                                                                    d_G,
                                                                    d_dt);
 }
@@ -74,6 +78,8 @@ __global__ void calculate_speed_all_to_all_particles(Particle *d_current_particl
                                                      int *d_threads) {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
+    // d_current_particles[i].position.x +=  0.1;
+
     calculate_speed_all_to_one_particle<<<*d_blocks, *d_threads>>>(&d_current_particles[i],
                                                                    d_previous_particles,
                                                                    d_number_of_particles,
@@ -83,11 +89,12 @@ __global__ void calculate_speed_all_to_all_particles(Particle *d_current_particl
                                                                    d_threads);
 }
 
-__global__ void calculate_position_all_particles(Particle *d_current_particles,
-                                                 float *d_dt) {
+__global__ void calculate_position_all_particles(Particle *d_current_particles, float *d_dt) {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
-    d_current_particles[i].position += d_current_particles[i].speed * (*d_dt);
+    d_current_particles[i].position += (d_current_particles[i].speed * Vector(*d_dt,*d_dt,*d_dt));
+    // d_current_particles[i].position += (d_current_particles[i].speed * (*d_dt));
+    // d_current_particles[i].position.x += 2.;
 }
 
 void cuda_initialize(Particle *particles,
@@ -97,8 +104,11 @@ void cuda_initialize(Particle *particles,
     int device = 0;
     number_of_particles = _number_of_particles;
 
-    threads = 512;
+    threads = 64;
     blocks = number_of_particles / threads;
+
+    // threads = 32;
+    // blocks = 32;
 
     cudaSetDevice(device);
     cudaDeviceProp deviceProp;
@@ -113,10 +123,10 @@ void cuda_initialize(Particle *particles,
     std::cout << "==============================================" << std::endl;
     std::cout << std::endl;
 
-    cudaMalloc((void **)d_current_particles, sizeof(Particle) * number_of_particles);
+    cudaMalloc((void **)&d_current_particles, sizeof(Particle) * number_of_particles);
     cudaMemcpy(d_current_particles, particles, sizeof(Particle) * number_of_particles, cudaMemcpyHostToDevice);
 
-    cudaMalloc((void **)d_previous_particles, sizeof(Particle) * number_of_particles);
+    cudaMalloc((void **)&d_previous_particles, sizeof(Particle) * number_of_particles);
     cudaMemcpy(d_previous_particles, particles, sizeof(Particle) * number_of_particles, cudaMemcpyHostToDevice);
 
     cudaMalloc((void **)&d_dt, sizeof(float));
@@ -145,8 +155,15 @@ void cuda_clean() {
     cudaFree(d_threads);
 }
 
-void move_particles(float *particles) {
-    // std::cout << "przed: " << position_x[0] << ", " << position_x[number_of_particles - 1] << std::endl;
+void move_particles(Particle *particles) {
+    // std::cout << "gpu przed: " << particles[0].speed.x << std::endl;
+
+    float time;
+    cudaEvent_t start, stop;
+
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start, 0);
 
     calculate_speed_all_to_all_particles<<<blocks, threads>>>(d_current_particles,
                                                        d_previous_particles,
@@ -162,8 +179,15 @@ void move_particles(float *particles) {
 
     cudaDeviceSynchronize();
 
-    cuda_check(cudaMemcpy(d_previous_particles, d_current_particles, sizeof(Particle) * number_of_particles, cudaMemcpyHostToHost));
 
+    cuda_check(cudaMemcpy(d_previous_particles, d_current_particles, sizeof(Particle) * number_of_particles, cudaMemcpyHostToHost));
     cuda_check(cudaMemcpy(particles, d_current_particles, sizeof(Particle) * number_of_particles, cudaMemcpyDeviceToHost));
-    // std::cout << "po skopiowaniu: " << position_x[0] << ", " << position_x[number_of_particles-1] << std::endl;
+
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&time, start, stop);
+
+    std::cout << time << std::endl;
+
+    // std::cout << "gpu po: " << particles[0].speed.x << std::endl;
 }

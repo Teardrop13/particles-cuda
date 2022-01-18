@@ -50,7 +50,7 @@ class Simulation:
         self.max = max
         self.view_min = view_min
         self.view_max = view_max
-        self.particles_number = particles_number
+        self.particles_number = c_int(particles_number)
 
         particles = []
 
@@ -69,7 +69,10 @@ class Simulation:
         self.G = c_float(G)
 
     def run(self) -> None:
-        move_particles(self.particles, self.particles_number)
+        if GPU:
+            move_particles(self.particles)
+        else:
+            move_particles(self.particles, self.particles_number)
 
     def draw(self) -> None:
         positions = list(map(attrgetter('position'), self.particles))
@@ -87,6 +90,7 @@ class Simulation:
 
         plt.ion()
         plt.pause(0.0001)
+        # plt.pause(1)
         self.subplot.clear()
 
     def cpu_initialize(self) -> None:
@@ -109,7 +113,7 @@ if __name__ == '__main__':
         if mode == '--cpu':
             GPU = False
             library = CDLL(os.path.join(
-                os.path.abspath('.'), "move_particles.so"))
+                os.path.abspath('.'), "move_particles_cpu.so"))
             move_particles = library.move_particles
             cpu_initialize = library.cpu_initalize
         elif mode == '--gpu':
@@ -127,9 +131,8 @@ if __name__ == '__main__':
         print('wrong argument')
         exit()
 
-    simulation = Simulation(particles_number=1024,
+    simulation = Simulation(particles_number=256,
                             G=10,
-                            dt=0.1,
                             min=-50,
                             max=50,
                             mass_min=1,
@@ -137,7 +140,8 @@ if __name__ == '__main__':
                             min_speed=1,
                             max_speed=10,
                             view_min=-200,
-                            view_max=200)
+                            view_max=200,
+                            dt=0.1)
 
     if GPU:
         simulation.cuda_initialize()
@@ -145,10 +149,12 @@ if __name__ == '__main__':
         simulation.cpu_initialize()
 
     simulation.draw()
+    # print('cpu: ' + simulation.particles[0].position.x)
     for i in range(4000):
 
         simulation.run()
         simulation.draw()
+        # print(f' python: {simulation.particles[0].speed.x}')
 
     if GPU:
         simulation.cuda_clean()
