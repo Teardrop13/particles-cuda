@@ -16,28 +16,29 @@ int *d_threads;
 int blocks;
 int *d_blocks;
 
-float *d_current_particles;
-float *d_previous_particles;
+Particle *d_current_particles;
+Particle *d_previous_particles;
 float *d_dt;  // dt nie jest do podnoszony do kwadratu ani dzielony przez 2
 int *d_number_of_particles;
 float *d_G;
 
 #define cuda_check(ans) \
     { _check((ans), __LINE__); }
-inline void _check(cudaError_t code, char *file, int line) {
+inline void _check(cudaError_t code, int line) {
     if (code != cudaSuccess) {
         fprintf(stderr, "CUDA Error:\n%s\n%d\n", cudaGetErrorString(code), line);
         exit(code);
     }
 }
 
-float get_distance(Vector a, Vector b) {
+__device__ float get_distance(Vector a, Vector b) {
     return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2) + pow(a.z - b.z, 2));
 }
 
-__global__ void calculate_acceleration_one_to_one_particle(Particle *current_particle,
+__global__ void calculate_speed_one_to_one_particle(Particle *current_particle,
                                                            Particle *other_particle,
-                                                           float *d_G) {
+                                                           float *d_G,
+                                                           float *d_dt) {
     float distance = get_distance((*current_particle).position, (*other_particle).position);
 
     if (distance == 0) {
@@ -45,7 +46,8 @@ __global__ void calculate_acceleration_one_to_one_particle(Particle *current_par
     }
     float a = (*d_G) * (*other_particle).mass / pow(distance, 3);
 
-    atomicAdd((*current_particle).speed, ((*other_particle).position - (*current_particle).position) * a * dt);
+    // tu powinien być atomicAdd
+    (*current_particle).speed += ((*other_particle).position - (*current_particle).position) * a * (*d_dt);
 }
 
 __global__ void calculate_speed_all_to_one_particle(Particle *current_particle,
@@ -57,9 +59,10 @@ __global__ void calculate_speed_all_to_one_particle(Particle *current_particle,
                                                     int *d_threads) {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
-    calculate_speed_one_to_one_particle<<<*d_blocks, *d_threads>>>(*current_particle,
+    calculate_speed_one_to_one_particle<<<*d_blocks, *d_threads>>>(current_particle,
                                                                    &d_previous_particles[i],
-                                                                   *d_G);
+                                                                   d_G,
+                                                                   d_dt);
 }
 
 __global__ void calculate_speed_all_to_all_particles(Particle *d_current_particles,
@@ -84,7 +87,7 @@ __global__ void calculate_position_all_particles(Particle *d_current_particles,
                                                  float *d_dt) {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
-    (*d_current_particles)[i].position += (*d_current_particles)[i].speed * (*d_dt);
+    d_current_particles[i].position += d_current_particles[i].speed * (*d_dt);
 }
 
 void cuda_initialize(Particle *particles,
@@ -95,7 +98,7 @@ void cuda_initialize(Particle *particles,
     number_of_particles = _number_of_particles;
 
     threads = 512;
-    blocks = number_of_particles / thread;
+    blocks = number_of_particles / threads;
 
     cudaSetDevice(device);
     cudaDeviceProp deviceProp;
@@ -143,13 +146,13 @@ void cuda_clean() {
 }
 
 void move_particles(float *particles) {
-    std::cout << "przed: " << position_x[0] << ", " << position_x[number_of_particles - 1] << std::endl;
+    // std::cout << "przed: " << position_x[0] << ", " << position_x[number_of_particles - 1] << std::endl;
 
-    calculate_speed_all_particles<<<blocks, threads>>>(d_current_particles,
+    calculate_speed_all_to_all_particles<<<blocks, threads>>>(d_current_particles,
                                                        d_previous_particles,
+                                                       d_number_of_particles,
                                                        d_dt,
                                                        d_G,
-                                                       d_number_of_particles,
                                                        d_blocks,
                                                        d_threads);
 
