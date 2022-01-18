@@ -1,4 +1,4 @@
-#include "move_particles.hpp"
+#include "move_particles_cpu.hpp"
 
 #include <math.h>
 
@@ -23,7 +23,7 @@ void move_particles(Particle *particles, int length) {
 
 
     for (int i = 0; i < length; i++) {
-        Vector* acceleration = new Vector(0,0,0);
+        Vector acceleration = Vector(0,0,0);
 
         for (int k = 0; k < length; k++) {
             
@@ -37,10 +37,10 @@ void move_particles(Particle *particles, int length) {
                 continue;
             }
 
-            *acceleration += (particles[k].position-particles[i].position) * G * particles[k].mass / pow(distance, 3);
+            acceleration += (particles[k].position-particles[i].position) * G * particles[k].mass / pow(distance, 3);
         }
 
-        particles[i].speed += (*acceleration) * dt;
+        particles[i].speed += (acceleration) * dt;
     }
 
     for (int i = 0; i < length; i++) {

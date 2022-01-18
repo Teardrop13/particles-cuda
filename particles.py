@@ -111,7 +111,7 @@ if __name__ == '__main__':
             library = CDLL(os.path.join(
                 os.path.abspath('.'), "move_particles.so"))
             move_particles = library.move_particles
-            cpu_initialize = library.cpu_initialize
+            cpu_initialize = library.cpu_initalize
         elif mode == '--gpu':
             GPU = True
             library = CDLL(os.path.join(
@@ -129,7 +129,7 @@ if __name__ == '__main__':
 
     simulation = Simulation(particles_number=300,
                             G=10,
-                            dt=0.01,
+                            dt=0.1,
                             min=-50,
                             max=50,
                             mass_min=1,
