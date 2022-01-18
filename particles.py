@@ -131,14 +131,14 @@ if __name__ == '__main__':
         print('wrong argument')
         exit()
 
-    simulation = Simulation(particles_number=256,
-                            G=10,
+    simulation = Simulation(particles_number=128,
+                            G=1,
                             min=-50,
                             max=50,
                             mass_min=1,
                             mass_max=2,
                             min_speed=1,
-                            max_speed=10,
+                            max_speed=3,
                             view_min=-200,
                             view_max=200,
                             dt=0.1)
