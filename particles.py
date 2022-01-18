@@ -93,7 +93,7 @@ class Simulation:
         cpu_initialize(self.G, self.dt)
 
     def cuda_initialize(self) -> None:
-        cuda_initialize(self.particles, self.dt, self.particles_number, self.G)
+        cuda_initialize(self.particles, self.particles_number, self.dt, self.G)
         print("gpu initialized")
 
     def cuda_clean(self) -> None:
@@ -127,7 +127,7 @@ if __name__ == '__main__':
         print('wrong argument')
         exit()
 
-    simulation = Simulation(particles_number=300,
+    simulation = Simulation(particles_number=1024,
                             G=10,
                             dt=0.1,
                             min=-50,

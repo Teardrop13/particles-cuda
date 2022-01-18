@@ -5,26 +5,72 @@
 extern "C" {
 #endif
 
-struct Vector
-{
+struct Vector {
     float x;
     float y;
     float z;
+
+    Vector(float _x, float _y, float _z) {
+        x = _x;
+        y = _y;
+        z = _z;
+    }
+
+    Vector() {
+        x=0;
+        y=0;
+        z=0;
+    }
+
+    Vector operator + (const Vector &obj) {
+         Vector new_vector;
+         new_vector.x = x + obj.x;
+         new_vector.y = y + obj.y;
+         new_vector.z = z + obj.z;
+         return new_vector;
+    }
+
+    Vector operator - (const Vector &obj) {
+         Vector new_vector;
+         new_vector.x = x - obj.x;
+         new_vector.y = y - obj.y;
+         new_vector.z = z - obj.z;
+         return new_vector;
+    }
+
+    Vector operator / (const float &val) {
+         Vector new_vector;
+         new_vector.x = x / val;
+         new_vector.y = y / val;
+         new_vector.z = z / val;
+         return new_vector;
+    }
+
+    Vector operator * (const float &val) {
+         Vector new_vector;
+         new_vector.x = x * val;
+         new_vector.y = y * val;
+         new_vector.z = z * val;
+         return new_vector;
+    }
+
+    Vector& operator += (const Vector &vec) {
+        this->x += vec.x;
+        this->y += vec.y;
+        this->z += vec.z;
+        return *this;
+    }
 };
 
-
-struct Particle
-{
-    float x;
-    float y;
-    float z;
+struct Particle {
+    Vector position;
+    Vector speed;
     float mass;
-    Vector acceleration;
 };
 
 void cuda_initialize(Particle *particles,
-                     float dt,
                      int _number_of_particles,
+                     float dt,
                      float G);
 
 void cuda_clean();
