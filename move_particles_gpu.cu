@@ -17,7 +17,7 @@ int blocks;
 int *d_blocks;
 
 Particle *d_particles;
-float *d_dt;  // dt nie jest do podnoszony do kwadratu ani dzielony przez 2
+float *d_dt;
 float *d_G;
 
 #define cuda_check(ans) \
@@ -33,20 +33,46 @@ __device__ float get_distance(Vector a, Vector b) {
     return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2) + pow(a.z - b.z, 2));
 }
 
-__global__ void calculate_speed_one_to_one_particle(Particle *current_particle,
+__global__ void add(Particle* current_particle,
+                    Particle* other_particle,
+                    float *d_G,
+                    float *d_dt) {
+    float distance = get_distance((*current_particle).position, (*other_particle).position);
+    if (distance < 0.001) {
+        return;
+    }
+    float a = (*d_G) * (*other_particle).mass / pow(distance, 3);
+
+    if(threadIdx.x == 0) {
+        atomicAdd(&(*current_particle).speed.x, ((*other_particle).position.x - (*current_particle).position.x) * a * (*d_dt));
+    } else if(threadIdx.x == 0) {
+        atomicAdd(&(*current_particle).speed.y, ((*other_particle).position.y - (*current_particle).position.y) * a * (*d_dt));
+    } else if(threadIdx.x == 0) {
+        atomicAdd(&(*current_particle).speed.z, ((*other_particle).position.z - (*current_particle).position.z) * a * (*d_dt));
+    }
+}
+
+__device__ void calculate_speed_one_to_one_particle(Particle *current_particle,
                                                            Particle *other_particle,
                                                            float *d_G,
                                                            float *d_dt) {
     float distance = get_distance((*current_particle).position, (*other_particle).position);
 
-    if (distance < 0.1) {
+    if (distance < 0.001) {
         return;
     }
     float a = (*d_G) * (*other_particle).mass / pow(distance, 3);
 
+
+
+    // float a = (*d_G) * (*other_particle).mass / pow(distance, 2);
+    // float a = (*d_G) * (*other_particle).mass / distance;
+
     // tu powinien być atomicAdd
     // (*current_particle).speed += ((*other_particle).position - (*current_particle).position) * Vector(a* (*d_dt),a* (*d_dt),a* (*d_dt));
     
+    // add<<<1,3>>>(current_particle, other_particle, d_G, d_dt);
+
     atomicAdd(&(*current_particle).speed.x, ((*other_particle).position.x - (*current_particle).position.x) * a * (*d_dt));
     atomicAdd(&(*current_particle).speed.y, ((*other_particle).position.y - (*current_particle).position.y) * a * (*d_dt));
     atomicAdd(&(*current_particle).speed.z, ((*other_particle).position.z - (*current_particle).position.z) * a * (*d_dt));
@@ -61,10 +87,10 @@ __global__ void calculate_speed_all_to_one_particle(Particle *current_particle,
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
 
-    calculate_speed_one_to_one_particle<<<*d_blocks, *d_threads>>>(current_particle,
-                                                                   (&d_particles)[i],
-                                                                   d_G,
-                                                                   d_dt);
+    calculate_speed_one_to_one_particle(current_particle,
+                                        (&d_particles)[i],
+                                        d_G,
+                                        d_dt);
 }
 
 __global__ void calculate_speed_all_to_all_particles(Particle *d_particles,

@@ -131,17 +131,17 @@ if __name__ == '__main__':
         print('wrong argument')
         exit()
 
-    simulation = Simulation(particles_number=128,
-                            G=1,
-                            min=-50,
-                            max=50,
-                            mass_min=1,
-                            mass_max=2,
+    simulation = Simulation(particles_number=1024,
+                            G=10,
+                            min=-5,
+                            max=5,
+                            mass_min=0.1,
+                            mass_max=0.3,
                             min_speed=1,
-                            max_speed=3,
-                            view_min=-200,
-                            view_max=200,
-                            dt=0.1)
+                            max_speed=10,
+                            view_min=-20,
+                            view_max=20,
+                            dt=0.005)
 
     if GPU:
         simulation.cuda_initialize()
