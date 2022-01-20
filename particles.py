@@ -1,4 +1,5 @@
 import os
+import string
 import sys
 from ctypes import *
 import matplotlib.pyplot as plt
@@ -138,24 +139,66 @@ if __name__ == '__main__':
         print('wrong argument')
         exit()
 
-    simulation = Simulation(particles_number=256,
-                            position_limits=(-5,5),
-                            mass_limits=(0.1, 0.3),
-                            speed_limits=(1, 10),
-                            view_limits=(-20, 20),
-                            G=10,
-                            dt=0.005)
+    finished = False
+    firts_run = True
 
-    simulation.initialize()
+    while finished == False:
 
-    for i in range(4000):
+        particles_number=256
+        position_limits=(-5,5)
+        mass_limits=(0.1, 1)
+        speed_limits=(1, 10)
+        G=10
+        dt=0.005
 
-        # if plot is still open
-        if plt.get_fignums():
-            simulation.run()
-        else:
-            break
+        if firts_run == False:
+            if input("exit? [N|y] ") == 'y':
+                exit()
 
-    print("simulation finished")
+        particles_number_str = input(f"particles number [{particles_number}]: ")
+        if particles_number_str != "":
+            particles_number = int(particles_number_str)
 
-    simulation.clean()
+        position_limits_str = input(f"position limits [{position_limits[0]}, {position_limits[1]}]: ")
+        if position_limits_str != "":
+            position_limits = tuple(float(x) for x in position_limits_str.split(","))
+
+        mass_limits_str = input(f"mass limits [{mass_limits[0]}, {mass_limits[1]}]: ")
+        if mass_limits_str != "":
+            mass_limits = tuple(float(x) for x in mass_limits_str.split(","))
+
+        speed_limits_str = input(f"speed limits [{speed_limits[0]}, {speed_limits[1]}]: ")
+        if speed_limits_str != "":
+            speed_limits = tuple(float(x) for x in speed_limits_str.split(","))
+
+        G_str = input(f"G [{G}]: ")
+        if G_str != "":
+            G = float(G_str)
+
+        dt_str = input(f"dt [{dt}]: ")
+        if dt_str != "":
+            dt = float(dt_str)
+
+        firts_run = False
+
+        simulation = Simulation(particles_number=particles_number,
+                                position_limits=position_limits,
+                                mass_limits=mass_limits,
+                                speed_limits=speed_limits,
+                                view_limits=(-20, 20),
+                                G=G,
+                                dt=dt)
+
+        simulation.initialize()
+
+        for i in range(4000):
+
+            # if plot is still open
+            if plt.get_fignums():
+                simulation.run()
+            else:
+                break
+
+        print("simulation finished")
+
+        simulation.clean()
