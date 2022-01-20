@@ -33,23 +33,26 @@ class Simulation:
 
     def __init__(self,
                  particles_number: int,
-                 min: float,
-                 max: float,
-                 mass_min: float,
-                 mass_max: float,
-                 min_speed: float,
-                 max_speed: float,
-                 view_min: float,
-                 view_max: float,
+                 position_limits: tuple[float, float],
+                 mass_limits: tuple[float, float],
+                 speed_limits: tuple[float, float],
+                 view_limits: tuple[float, float],
                  G: float,
                  dt: float) -> None:
                  
         self.fig = plt.figure()
         self.subplot = self.fig.add_subplot(111, projection='3d')
-        self.min = min
-        self.max = max
-        self.view_min = view_min
-        self.view_max = view_max
+
+        min = position_limits[0]
+        max = position_limits[1]
+        min_speed = speed_limits[0]
+        max_speed = speed_limits[1]
+        mass_min = mass_limits[0]
+        mass_max = mass_limits[1]
+        
+        self.view_limits_x = view_limits
+        self.view_limits_y = view_limits
+        self.view_limits_z = view_limits
         self.particles_number = c_int(particles_number)
 
         particles = []
@@ -83,12 +86,15 @@ class Simulation:
                              c='r',
                              marker='o')
 
-        self.subplot.set_xlim(self.view_min, self.view_max)
-        self.subplot.set_ylim(self.view_min, self.view_max)
-        self.subplot.set_zlim(self.view_min, self.view_max)
+        self.subplot.set_xlim(*self.view_limits_x)
+        self.subplot.set_ylim(*self.view_limits_y)
+        self.subplot.set_zlim(*self.view_limits_z)
 
         plt.ion()
-        plt.pause(0.000001)
+        plt.pause(0.00001)
+        self.view_limits_x = self.subplot.get_xlim()
+        self.view_limits_y = self.subplot.get_ylim()
+        self.view_limits_z = self.subplot.get_zlim()
         self.subplot.clear()
 
     def initialize(self) -> None:
@@ -133,21 +139,18 @@ if __name__ == '__main__':
         exit()
 
     simulation = Simulation(particles_number=256,
+                            position_limits=(-5,5),
+                            mass_limits=(0.1, 0.3),
+                            speed_limits=(1, 10),
+                            view_limits=(-20, 20),
                             G=10,
-                            min=-5,
-                            max=5,
-                            mass_min=0.1,
-                            mass_max=0.3,
-                            min_speed=1,
-                            max_speed=10,
-                            view_min=-20,
-                            view_max=20,
                             dt=0.005)
 
     simulation.initialize()
 
     for i in range(4000):
 
+        # if plot is still open
         if plt.get_fignums():
             simulation.run()
         else:
