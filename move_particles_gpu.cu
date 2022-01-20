@@ -33,32 +33,64 @@ __device__ float get_distance(Vector a, Vector b) {
     return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2) + pow(a.z - b.z, 2));
 }
 
+__global__ void add(Particle* current_particle,
+                    Particle* other_particle,
+                    float *d_G,
+                    float *d_dt) {
+    float distance = get_distance((*current_particle).position, (*other_particle).position);
+    if (distance < 0.001) {
+        return;
+    }
+    float a = (*d_G) * (*other_particle).mass / pow(distance, 3);
 
+    if(threadIdx.x == 0) {
+        atomicAdd(&(*current_particle).speed.x, ((*other_particle).position.x - (*current_particle).position.x) * a * (*d_dt));
+    } else if(threadIdx.x == 0) {
+        atomicAdd(&(*current_particle).speed.y, ((*other_particle).position.y - (*current_particle).position.y) * a * (*d_dt));
+    } else if(threadIdx.x == 0) {
+        atomicAdd(&(*current_particle).speed.z, ((*other_particle).position.z - (*current_particle).position.z) * a * (*d_dt));
+    }
+}
 
-__global__ void calculate_speed_all_to_one_particle(Particle *current_particle,
-                                                    Particle *d_particles,
-                                                    float *d_dt,
-                                                    float *d_G) {
-
-    int i = threadIdx.x + blockIdx.x * blockDim.x / 3;
-    int coordinate = (threadIdx.x + blockIdx.x * blockDim.x) % 3;
-
-    float distance = get_distance(d_particles[i].position, d_particles[i].position);
+__device__ void calculate_speed_one_to_one_particle(Particle *current_particle,
+                                                           Particle *other_particle,
+                                                           float *d_G,
+                                                           float *d_dt) {
+    float distance = get_distance((*current_particle).position, (*other_particle).position);
 
     if (distance < 0.001) {
         return;
     }
+    float a = (*d_G) * (*other_particle).mass / pow(distance, 3);
 
 
-    float a = (*d_G) * d_particles[i].mass / pow(distance, 3);
 
-    if (coordinate == 0) {
-        atomicAdd(&(*current_particle).speed.x, (d_particles[i].position.x - d_particles[i].position.x) * a * (*d_dt));
-    } if (coordinate == 1) {
-        atomicAdd(&(*current_particle).speed.y, (d_particles[i].position.y - d_particles[i].position.y) * a * (*d_dt));
-    } else {
-        atomicAdd(&(*current_particle).speed.z, (d_particles[i].position.z - d_particles[i].position.z) * a * (*d_dt));
-    }
+    // float a = (*d_G) * (*other_particle).mass / pow(distance, 2);
+    // float a = (*d_G) * (*other_particle).mass / distance;
+
+    // tu powinien być atomicAdd
+    // (*current_particle).speed += ((*other_particle).position - (*current_particle).position) * Vector(a* (*d_dt),a* (*d_dt),a* (*d_dt));
+    
+    // add<<<1,3>>>(current_particle, other_particle, d_G, d_dt);
+
+    atomicAdd(&(*current_particle).speed.x, ((*other_particle).position.x - (*current_particle).position.x) * a * (*d_dt));
+    atomicAdd(&(*current_particle).speed.y, ((*other_particle).position.y - (*current_particle).position.y) * a * (*d_dt));
+    atomicAdd(&(*current_particle).speed.z, ((*other_particle).position.z - (*current_particle).position.z) * a * (*d_dt));
+}
+
+__global__ void calculate_speed_all_to_one_particle(Particle *current_particle,
+                                                    Particle *d_particles,
+                                                    float *d_dt,
+                                                    float *d_G,
+                                                    int *d_blocks,
+                                                    int *d_threads) {
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+
+
+    calculate_speed_one_to_one_particle(current_particle,
+                                        (&d_particles)[i],
+                                        d_G,
+                                        d_dt);
 }
 
 __global__ void calculate_speed_all_to_all_particles(Particle *d_particles,
@@ -70,10 +102,12 @@ __global__ void calculate_speed_all_to_all_particles(Particle *d_particles,
 
     // resetowanie prędkości
     // d_particles[i].speed = Vector(0,0,0);
-    calculate_speed_all_to_one_particle<<<*d_blocks * 3, *d_threads>>>(&d_particles[i],
+    calculate_speed_all_to_one_particle<<<*d_blocks, *d_threads>>>(&d_particles[i],
                                                                    d_particles,
                                                                    d_dt,
-                                                                   d_G);
+                                                                   d_G,
+                                                                   d_blocks,
+                                                                   d_threads);
 }
 
 __global__ void calculate_position_all_particles(Particle *d_particles, float *d_dt) {
