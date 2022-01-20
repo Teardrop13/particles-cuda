@@ -140,20 +140,16 @@ if __name__ == '__main__':
         exit()
 
     finished = False
-    firts_run = True
+    first_run = True
 
-    while finished == False:
+    particles_number=256
+    position_limits=(-5,5)
+    mass_limits=(0.1, 1)
+    speed_limits=(1, 10)
+    G=10
+    dt=0.005
 
-        particles_number=256
-        position_limits=(-5,5)
-        mass_limits=(0.1, 1)
-        speed_limits=(1, 10)
-        G=10
-        dt=0.005
-
-        if firts_run == False:
-            if input("exit? [N|y] ") == 'y':
-                exit()
+    while first_run or input("exit? [N|y] ") != 'y':
 
         particles_number_str = input(f"particles number [{particles_number}]: ")
         if particles_number_str != "":
@@ -179,7 +175,7 @@ if __name__ == '__main__':
         if dt_str != "":
             dt = float(dt_str)
 
-        firts_run = False
+        first_run = False
 
         simulation = Simulation(particles_number=particles_number,
                                 position_limits=position_limits,
