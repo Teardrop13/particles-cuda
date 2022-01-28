@@ -70,8 +70,8 @@ __host__ __device__ struct Particle {
 
 void cuda_initialize(Particle *particles,
                      int _number_of_particles,
-                     float dt,
-                     float G);
+                     float _dt,
+                     float _G);
 
 void cuda_clean();
 

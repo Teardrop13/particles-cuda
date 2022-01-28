@@ -1,5 +1,4 @@
 import os
-import string
 import sys
 from ctypes import *
 import matplotlib.pyplot as plt
@@ -37,7 +36,6 @@ class Simulation:
                  position_limits: tuple[float, float],
                  mass_limits: tuple[float, float],
                  speed_limits: tuple[float, float],
-                 view_limits: tuple[float, float],
                  G: float,
                  dt: float) -> None:
                  
@@ -51,9 +49,9 @@ class Simulation:
         mass_min = mass_limits[0]
         mass_max = mass_limits[1]
         
-        self.view_limits_x = view_limits
-        self.view_limits_y = view_limits
-        self.view_limits_z = view_limits
+        self.view_limits_x = position_limits
+        self.view_limits_y = position_limits
+        self.view_limits_z = position_limits
         self.particles_number = c_int(particles_number)
 
         particles = []
@@ -143,7 +141,7 @@ if __name__ == '__main__':
     first_run = True
 
     particles_number=256
-    position_limits=(-5,5)
+    position_limits=(-10, 10)
     mass_limits=(0.1, 1)
     speed_limits=(1, 10)
     G=10
@@ -181,13 +179,12 @@ if __name__ == '__main__':
                                 position_limits=position_limits,
                                 mass_limits=mass_limits,
                                 speed_limits=speed_limits,
-                                view_limits=(-20, 20),
                                 G=G,
                                 dt=dt)
 
         simulation.initialize()
 
-        for i in range(4000):
+        while True:
 
             # if plot is still open
             if plt.get_fignums():
