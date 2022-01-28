@@ -6,6 +6,10 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <chrono>
+
+
+using namespace std::chrono;
 
 float G; // nie prawdziwe G
 float dt;
@@ -20,7 +24,7 @@ void cpu_initalize(float _G, float _dt) {
 }
 
 void move_particles(Particle *particles, int length) {
-
+    auto start = high_resolution_clock::now();
 
     for (int i = 0; i < length; i++) {
         Vector acceleration = Vector(0,0,0);
@@ -46,4 +50,7 @@ void move_particles(Particle *particles, int length) {
     for (int i = 0; i < length; i++) {
         particles[i].position += particles[i].speed * dt;
     }
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<nanoseconds>(stop - start);
+    std::cout << "\r" << duration.count() / 1000000. << " ms   " << std::flush;
 }

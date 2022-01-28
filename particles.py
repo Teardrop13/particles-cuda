@@ -141,11 +141,11 @@ if __name__ == '__main__':
     first_run = True
 
     particles_number=256
-    position_limits=(-10, 10)
+    position_limits=(-5, 5)
     mass_limits=(0.1, 1)
     speed_limits=(1, 10)
     G=10
-    dt=0.005
+    dt=0.001
 
     while first_run or input("exit? [N|y] ") != 'y':
 
@@ -192,6 +192,6 @@ if __name__ == '__main__':
             else:
                 break
 
-        print("simulation finished")
+        print("\nsimulation finished")
 
         simulation.clean()
