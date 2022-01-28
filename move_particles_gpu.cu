@@ -99,9 +99,6 @@ void cuda_initialize(Particle *particles,
     threads = 64;
     blocks = number_of_particles / threads;
 
-    // threads = 32;
-    // blocks = 32;
-
     cudaSetDevice(device);
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, device);
