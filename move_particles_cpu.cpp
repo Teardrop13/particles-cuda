@@ -18,6 +18,10 @@ float get_distance(Vector a, Vector b) {
     return sqrtf(powf(a.x-b.x, 2) + powf(a.y-b.y, 2) + powf(a.z-b.z, 2));
 }
 
+float get_length(Vector vector) {
+    return sqrtf(powf(vector.x, 2) + powf(vector.y, 2) + powf(vector.z, 2));
+}
+
 void cpu_initalize(float _G, float _dt) {
     G = _G;
     dt = _dt;
@@ -56,15 +60,10 @@ void move_particles(Particle *particles, int length) {
             }
             
             float distance = get_distance(particles[i].position, particles[k].position);
-            // std::cout << "distance: " << distance << std::endl;
-            // std::cout << "i.radius: " << particles[i].radius << std::endl;
-            // std::cout << "k.radius: " << particles[k].radius << std::endl;
-            // std::cout << "i.radius + k.radius: " << particles[i].radius + particles[k].radius << std::endl;
 
             if ((particles[i].radius + particles[k].radius) > distance) {
-                // std::cout << "zderzyly sie" << std::endl;
-                particles[i].speed *= (-1);
-                particles[k].speed *= (-1);
+                particles[i].speed = (particles[i].position - particles[k].position)/distance * get_length(particles[k].speed);
+                particles[k].speed = (particles[k].position - particles[i].position)/distance * get_length(particles[i].speed);
             }
 
         }

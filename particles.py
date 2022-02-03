@@ -95,6 +95,7 @@ class Simulation:
         self.subplot.set_xlim(*self.view_limits_x)
         self.subplot.set_ylim(*self.view_limits_y)
         self.subplot.set_zlim(*self.view_limits_z)
+        plt.axis('off')
 
         plt.ion()
         plt.pause(0.00001)
@@ -148,7 +149,7 @@ if __name__ == '__main__':
     first_run = True
 
     particles_number=256
-    position_limits=(-5, 5)
+    position_limits=(0,1)
     mass_limits=(0.1, 1)
     speed_limits=(-5, 5)
     radius_limits=(0.01, 0.1)
