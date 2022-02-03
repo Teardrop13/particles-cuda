@@ -28,7 +28,7 @@ inline void _check(cudaError_t code, int line) {
 }
 
 __device__ float get_distance(Vector a, Vector b) {
-    return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2) + pow(a.z - b.z, 2));
+    return sqrtf(powf(a.x - b.x, 2) + powf(a.y - b.y, 2) + powf(a.z - b.z, 2));
 }
 
 __device__ void calculate_speed_one_to_one_particle(Particle *current_particle,

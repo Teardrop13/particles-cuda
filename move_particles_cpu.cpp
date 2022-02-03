@@ -15,7 +15,7 @@ float G; // nie prawdziwe G
 float dt;
 
 float get_distance(Vector a, Vector b) {
-    return sqrt(pow(a.x-b.x, 2) + pow(a.y-b.y, 2) + pow(a.z-b.z, 2));
+    return sqrtf(powf(a.x-b.x, 2) + powf(a.y-b.y, 2) + powf(a.z-b.z, 2));
 }
 
 void cpu_initalize(float _G, float _dt) {
@@ -45,6 +45,29 @@ void move_particles(Particle *particles, int length) {
         }
 
         particles[i].speed += (acceleration) * dt;
+    }
+
+    for (int i = 0; i < length; i++) {
+
+        for (int k = 0; k < length; k++) {
+            
+            if (i <= k) {
+                continue;
+            }
+            
+            float distance = get_distance(particles[i].position, particles[k].position);
+            // std::cout << "distance: " << distance << std::endl;
+            // std::cout << "i.radius: " << particles[i].radius << std::endl;
+            // std::cout << "k.radius: " << particles[k].radius << std::endl;
+            // std::cout << "i.radius + k.radius: " << particles[i].radius + particles[k].radius << std::endl;
+
+            if ((particles[i].radius + particles[k].radius) > distance) {
+                // std::cout << "zderzyly sie" << std::endl;
+                particles[i].speed *= (-1);
+                particles[k].speed *= (-1);
+            }
+
+        }
     }
 
     for (int i = 0; i < length; i++) {

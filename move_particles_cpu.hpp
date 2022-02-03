@@ -60,12 +60,20 @@ struct Vector {
         this->z += vec.z;
         return *this;
     }
+
+    Vector& operator *= (const float &val) {
+        this->x *= val;
+        this->y *= val;
+        this->z *= val;
+        return *this;
+    }
 };
 
 struct Particle {
     Vector position;
     Vector speed;
     float mass;
+    float radius;
 };
 
 void cpu_initalize(float _G, float _dt);

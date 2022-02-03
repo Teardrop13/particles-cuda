@@ -66,6 +66,7 @@ __host__ __device__ struct Particle {
     Vector position;
     Vector speed;
     float mass;
+    float radius;
 };
 
 void cuda_initialize(Particle *particles,

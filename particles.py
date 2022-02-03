@@ -18,11 +18,14 @@ class Vector(Structure):
 class Particle(Structure):
     _fields_ = [("position", Vector),
                 ("speed", Vector),
-                ("mass", c_float)]
+                ("mass", c_float),
+                ("radius", c_float)]
 
-    def __init__(self, x: float, y: float, z: float, x_speed: float, y_speed: float, z_speed: float, mass: float) -> None:
+    def __init__(self, x: float, y: float, z: float, x_speed: float, y_speed: float, z_speed: float, mass: float, radius: float) -> None:
         super(Particle, self).__init__(position=Vector(x, y, z),
-                                       speed=Vector(x_speed, y_speed, z_speed), mass=mass)
+                                       speed=Vector(x_speed, y_speed, z_speed),
+                                       mass=mass,
+                                       radius=radius)
 
 
 def generate(min: float, max: float) -> float:
@@ -36,6 +39,7 @@ class Simulation:
                  position_limits: tuple[float, float],
                  mass_limits: tuple[float, float],
                  speed_limits: tuple[float, float],
+                 radius_limits: tuple[float, float],
                  G: float,
                  dt: float) -> None:
                  
@@ -48,6 +52,8 @@ class Simulation:
         max_speed = speed_limits[1]
         mass_min = mass_limits[0]
         mass_max = mass_limits[1]
+        radius_min = radius_limits[0]
+        radius_max = radius_limits[1]
         
         self.view_limits_x = position_limits
         self.view_limits_y = position_limits
@@ -63,7 +69,8 @@ class Simulation:
                                       x_speed=generate(min_speed, max_speed),
                                       y_speed=generate(min_speed, max_speed),
                                       z_speed=generate(min_speed, max_speed),
-                                      mass=generate(mass_min, mass_max)))
+                                      mass=generate(mass_min, mass_max),
+                                      radius=generate(radius_min, radius_max)))
 
         self.particles = (Particle * particles_number)(*particles)
 
@@ -143,7 +150,8 @@ if __name__ == '__main__':
     particles_number=256
     position_limits=(-5, 5)
     mass_limits=(0.1, 1)
-    speed_limits=(1, 10)
+    speed_limits=(-5, 5)
+    radius_limits=(0.01, 0.1)
     G=10
     dt=0.001
 
@@ -165,6 +173,10 @@ if __name__ == '__main__':
         if speed_limits_str != "":
             speed_limits = tuple(float(x) for x in speed_limits_str.split(","))
 
+        radius_limits_str = input(f"radius limits [{radius_limits[0]}, {radius_limits[1]}]: ")
+        if radius_limits_str != "":
+            radius_limits = tuple(float(x) for x in radius_limits_str.split(","))
+
         G_str = input(f"G [{G}]: ")
         if G_str != "":
             G = float(G_str)
@@ -180,7 +192,8 @@ if __name__ == '__main__':
                                 mass_limits=mass_limits,
                                 speed_limits=speed_limits,
                                 G=G,
-                                dt=dt)
+                                dt=dt,
+                                radius_limits=radius_limits)
 
         simulation.initialize()
 
