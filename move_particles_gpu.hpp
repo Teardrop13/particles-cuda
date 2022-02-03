@@ -54,6 +54,14 @@ __host__ __device__ struct Vector {
          return new_vector;
     }
 
+    __host__ __device__ Vector operator * (const float &val) {
+         Vector new_vector;
+         new_vector.x = x * val;
+         new_vector.y = y * val;
+         new_vector.z = z * val;
+         return new_vector;
+    }
+
     __host__ __device__ Vector& operator += (const Vector &vec) {
         this->x += vec.x;
         this->y += vec.y;

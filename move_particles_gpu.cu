@@ -31,6 +31,10 @@ __device__ float get_distance(Vector a, Vector b) {
     return sqrtf(powf(a.x - b.x, 2) + powf(a.y - b.y, 2) + powf(a.z - b.z, 2));
 }
 
+__device__ float get_length(Vector vector) {
+    return sqrtf(powf(vector.x, 2) + powf(vector.y, 2) + powf(vector.z, 2));
+}
+
 __device__ void calculate_speed_one_to_one_particle(Particle *current_particle,
                                                            Particle *other_particle,
                                                            float G,
@@ -87,6 +91,35 @@ __global__ void calculate_position_all_particles(Particle *d_particles, int numb
     }
 }
 
+__global__ void check_collsion_one_to_all_particles(Particle *current_particle, Particle *d_particles, int number_of_particles) {
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < number_of_particles) {
+
+        float distance = get_distance((*current_particle).position, d_particles[i].position);
+
+        if (distance < 0.00001) {
+            return;
+        }
+        if (((*current_particle).radius + particles[i].radius) > distance) {
+            (*current_particle).speed = ((*current_particle).position - particles[i].position)/distance * get_length(particles[i].speed);
+        }
+    }
+}
+
+__global__ void check_collsion_all_to_all_particles(Particle *d_particles,
+                                                        int number_of_particles,
+                                                     int blocks,
+                                                     int threads) {
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+
+    if (i < number_of_particles) {
+        calculate_speed_all_to_one_particle<<<blocks, threads>>>(&d_particles[i],
+                                                                d_particles,
+                                                                number_of_particles);
+    }
+}
+
 void cuda_initialize(Particle *particles,
                      int _number_of_particles,
                      float _dt,
@@ -136,6 +169,10 @@ void move_particles(Particle *particles) {
                                                        G,
                                                        blocks,
                                                        threads);
+
+    cudaDeviceSynchronize();
+
+    check_collsion_all_to_all_particles<<<blocks, threads>>>(d_particles, number_of_particles);
 
     cudaDeviceSynchronize();
 
