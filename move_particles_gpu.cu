@@ -36,19 +36,18 @@ __device__ float get_length(Vector vector) {
 }
 
 __device__ void calculate_speed_one_to_one_particle(Particle *current_particle,
-                                                           Particle *other_particle,
-                                                           float G,
-                                                           float dt) {
+                                                    Particle *other_particle,
+                                                    float G,
+                                                    float dt) {
     float distance = get_distance((*current_particle).position, (*other_particle).position);
 
-    if (distance < 0.00001) {
-        return;
-    }
-    float a = G * (*other_particle).mass / pow(distance, 3);
+    if (distance > 0.00001) {
+        float a = G * (*other_particle).mass / powf(distance, 3);
 
-    atomicAdd(&(*current_particle).speed.x, ((*other_particle).position.x - (*current_particle).position.x) * a * dt);
-    atomicAdd(&(*current_particle).speed.y, ((*other_particle).position.y - (*current_particle).position.y) * a * dt);
-    atomicAdd(&(*current_particle).speed.z, ((*other_particle).position.z - (*current_particle).position.z) * a * dt);
+        atomicAdd(&(*current_particle).speed.x, ((*other_particle).position.x - (*current_particle).position.x) * a * dt);
+        atomicAdd(&(*current_particle).speed.y, ((*other_particle).position.y - (*current_particle).position.y) * a * dt);
+        atomicAdd(&(*current_particle).speed.z, ((*other_particle).position.z - (*current_particle).position.z) * a * dt);
+    }
 }
 
 __global__ void calculate_speed_all_to_one_particle(Particle *current_particle,
@@ -59,15 +58,15 @@ __global__ void calculate_speed_all_to_one_particle(Particle *current_particle,
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (i < number_of_particles) {
-    calculate_speed_one_to_one_particle(current_particle,
-                                        (&d_particles)[i],
-                                        G,
-                                        dt);
+        calculate_speed_one_to_one_particle(current_particle,
+                                            &d_particles[i],
+                                            G,
+                                            dt);
     }
 }
 
 __global__ void calculate_speed_all_to_all_particles(Particle *d_particles,
-                                                    int number_of_particles,
+                                                     int number_of_particles,
                                                      float dt,
                                                      float G,
                                                      int blocks,
@@ -75,11 +74,11 @@ __global__ void calculate_speed_all_to_all_particles(Particle *d_particles,
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (i < number_of_particles) {
-    calculate_speed_all_to_one_particle<<<blocks, threads>>>(&d_particles[i],
-                                                                   d_particles,
-    number_of_particles,
-                                                                   dt,
-                                                                   G);
+        calculate_speed_all_to_one_particle<<<blocks, threads>>>(&d_particles[i],
+                                                                 d_particles,
+                                                                 number_of_particles,
+                                                                 dt,
+                                                                 G);
     }
 }
 
@@ -87,7 +86,7 @@ __global__ void calculate_position_all_particles(Particle *d_particles, int numb
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (i < number_of_particles) {
-        d_particles[i].position += (d_particles[i].speed * Vector(dt, dt, dt));
+        d_particles[i].position += (d_particles[i].speed * dt);
     }
 }
 
@@ -95,28 +94,26 @@ __global__ void check_collsion_one_to_all_particles(Particle *current_particle, 
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (i < number_of_particles) {
-
         float distance = get_distance((*current_particle).position, d_particles[i].position);
 
-        if (distance < 0.00001) {
-            return;
-        }
-        if (((*current_particle).radius + particles[i].radius) > distance) {
-            (*current_particle).speed = ((*current_particle).position - particles[i].position)/distance * get_length(particles[i].speed);
+        if (distance > 0.00001) {
+            if (((*current_particle).radius + d_particles[i].radius) > distance) {
+                (*current_particle).speed = ((*current_particle).position - d_particles[i].position) / distance * get_length(d_particles[i].speed);
+            }
         }
     }
 }
 
 __global__ void check_collsion_all_to_all_particles(Particle *d_particles,
-                                                        int number_of_particles,
-                                                     int blocks,
-                                                     int threads) {
+                                                    int number_of_particles,
+                                                    int blocks,
+                                                    int threads) {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (i < number_of_particles) {
-        calculate_speed_all_to_one_particle<<<blocks, threads>>>(&d_particles[i],
-                                                                d_particles,
-                                                                number_of_particles);
+        check_collsion_one_to_all_particles<<<blocks, threads>>>(&d_particles[i],
+                                                                 d_particles,
+                                                                 number_of_particles);
     }
 }
 
@@ -130,7 +127,7 @@ void cuda_initialize(Particle *particles,
     G = _G;
 
     threads = 64;
-    blocks = number_of_particles / threads;
+    blocks = ceil(1. * number_of_particles / threads);
 
     cudaSetDevice(device);
     cudaDeviceProp deviceProp;
@@ -164,15 +161,18 @@ void move_particles(Particle *particles) {
     cudaEventRecord(start, 0);
 
     calculate_speed_all_to_all_particles<<<blocks, threads>>>(d_particles,
-                                                        number_of_particles,
-                                                       dt,
-                                                       G,
-                                                       blocks,
-                                                       threads);
+                                                              number_of_particles,
+                                                              dt,
+                                                              G,
+                                                              blocks,
+                                                              threads);
 
     cudaDeviceSynchronize();
 
-    check_collsion_all_to_all_particles<<<blocks, threads>>>(d_particles, number_of_particles);
+    check_collsion_all_to_all_particles<<<blocks, threads>>>(d_particles,
+                                                             number_of_particles,
+                                                             blocks,
+                                                             threads);
 
     cudaDeviceSynchronize();
 
