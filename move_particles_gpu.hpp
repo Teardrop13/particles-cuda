@@ -84,7 +84,7 @@ void cuda_initialize(Particle *particles,
 
 void cuda_clean();
 
-void move_particles(Particle *particles);
+float move_particles(Particle *particles);
 
 #ifdef __cplusplus
 }

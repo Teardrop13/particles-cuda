@@ -78,7 +78,7 @@ struct Particle {
 
 void cpu_initalize(float _G, float _dt);
 
-void move_particles(Particle *particles, int length);
+float move_particles(Particle *particles, int length);
 
 #ifdef __cplusplus
 }

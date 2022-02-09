@@ -27,7 +27,7 @@ void cpu_initalize(float _G, float _dt) {
     dt = _dt;
 }
 
-void move_particles(Particle *particles, int length) {
+float move_particles(Particle *particles, int length) {
     auto start = high_resolution_clock::now();
 
     for (int i = 0; i < length; i++) {
@@ -75,4 +75,5 @@ void move_particles(Particle *particles, int length) {
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<nanoseconds>(stop - start);
     std::cout << "\r" << duration.count() / 1000000. << " ms   " << std::flush;
+    return duration.count() / 1000000.;
 }

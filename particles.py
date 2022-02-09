@@ -78,10 +78,11 @@ class Simulation:
         self.G = c_float(G)
 
     def run(self) -> None:
+        time: float
         if GPU:
-            move_particles(self.particles)
+            time = move_particles(self.particles)
         else:
-            move_particles(self.particles, self.particles_number)
+            time = move_particles(self.particles, self.particles_number)
 
         positions = list(map(attrgetter('position'), self.particles))
 
@@ -103,6 +104,8 @@ class Simulation:
         self.view_limits_y = self.subplot.get_ylim()
         self.view_limits_z = self.subplot.get_zlim()
         self.subplot.clear()
+
+        return time
 
     def initialize(self) -> None:
         if GPU:
@@ -129,12 +132,14 @@ if __name__ == '__main__':
             library = CDLL(os.path.join(
                 os.path.abspath('.'), "move_particles_cpu.so"))
             move_particles = library.move_particles
+            move_particles.restype = c_float
             cpu_initialize = library.cpu_initalize
         elif mode == '--gpu':
             GPU = True
             library = CDLL(os.path.join(
                 os.path.abspath('.'), "move_particles_gpu.so"))
             move_particles = library.move_particles
+            move_particles.restype = c_float
             cuda_initialize = library.cuda_initialize
             cuda_clean = library.cuda_clean
         else:
@@ -148,7 +153,6 @@ if __name__ == '__main__':
     finished = False
     first_run = True
 
-    particles_number=256
     position_limits=(0,1)
     mass_limits=(0.1, 1)
     speed_limits=(-5, 5)
@@ -156,37 +160,14 @@ if __name__ == '__main__':
     G=10
     dt=0.001
 
-    while first_run or input("exit? [N|y] ") != 'y':
 
-        particles_number_str = input(f"particles number [{particles_number}]: ")
-        if particles_number_str != "":
-            particles_number = int(particles_number_str)
 
-        position_limits_str = input(f"position limits [{position_limits[0]}, {position_limits[1]}]: ")
-        if position_limits_str != "":
-            position_limits = tuple(float(x) for x in position_limits_str.split(","))
+    f = open("gpu_time.csv", 'a')
+    f.write('particles,time\n')
 
-        mass_limits_str = input(f"mass limits [{mass_limits[0]}, {mass_limits[1]}]: ")
-        if mass_limits_str != "":
-            mass_limits = tuple(float(x) for x in mass_limits_str.split(","))
+    for particles_number in range(100, 2000, 100):
 
-        speed_limits_str = input(f"speed limits [{speed_limits[0]}, {speed_limits[1]}]: ")
-        if speed_limits_str != "":
-            speed_limits = tuple(float(x) for x in speed_limits_str.split(","))
-
-        radius_limits_str = input(f"radius limits [{radius_limits[0]}, {radius_limits[1]}]: ")
-        if radius_limits_str != "":
-            radius_limits = tuple(float(x) for x in radius_limits_str.split(","))
-
-        G_str = input(f"G [{G}]: ")
-        if G_str != "":
-            G = float(G_str)
-
-        dt_str = input(f"dt [{dt}]: ")
-        if dt_str != "":
-            dt = float(dt_str)
-
-        first_run = False
+        print(f'particles: {particles_number}')
 
         simulation = Simulation(particles_number=particles_number,
                                 position_limits=position_limits,
@@ -197,15 +178,22 @@ if __name__ == '__main__':
                                 radius_limits=radius_limits)
 
         simulation.initialize()
+        time = simulation.run()
 
-        while True:
+        for i in range(50):
 
             # if plot is still open
             if plt.get_fignums():
-                simulation.run()
+                time += simulation.run()
+                time /= 2
             else:
                 break
 
+        plt.close()
+
         print("\nsimulation finished")
+        f.write(f'{particles_number},{time}\n')
 
         simulation.clean()
+
+    f.close()

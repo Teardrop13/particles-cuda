@@ -150,7 +150,7 @@ void cuda_clean() {
     cudaFree(d_particles);
 }
 
-void move_particles(Particle *particles) {
+float move_particles(Particle *particles) {
     // std::cout << "gpu przed: " << particles[0].speed.x << std::endl;
 
     float time;
@@ -187,4 +187,5 @@ void move_particles(Particle *particles) {
     cudaEventElapsedTime(&time, start, stop);
 
     std::cout << "\r" << time << " ms   " << std::flush;
+    return time;
 }
