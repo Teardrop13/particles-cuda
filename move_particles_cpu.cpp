@@ -11,7 +11,7 @@
 
 using namespace std::chrono;
 
-float G; // nie prawdziwe G
+float G;
 float dt;
 
 float get_distance(Vector a, Vector b) {
